@@ -185,23 +185,28 @@ void saveGameResult(String characterName, int remainingHealth, bool isVictory) {
   //입력된 문자가 소문자로 저장됨.
   String? input = stdin.readLineSync()?.toLowerCase();
 
-  if (input == 'y') {
-    try {
-      final file = File('file/result.txt');
-      final result =
-          '캐릭터 이름: $characterName\n'
-          '남은 체력: $remainingHealth\n'
-          '게임 결과: ${isVictory ? "승리" : "패배"}';
+  while (true) {
+    if (input == 'y') {
+      try {
+        final file = File('file/result.txt');
+        final result =
+            '캐릭터 이름: $characterName\n'
+            '남은 체력: $remainingHealth\n'
+            '게임 결과: ${isVictory ? "승리" : "패배"}';
 
-      file.writeAsStringSync(result);
-      print('게임 결과가 저장되었습니다.');
-    } catch (e) {
-      print('결과 저장에 실패했습니다: $e');
+        file.writeAsStringSync(result);
+        print('게임 결과가 저장되었습니다.');
+      } catch (e) {
+        print('결과 저장에 실패했습니다: $e');
+      }
+      break;
+    } else if (input == 'n') {
+      print('게임 결과가 저장되지 않았습니다.');
+      break;
+    } else {
+      print('y 또는 n을 입력해주세요.');
+      input = stdin.readLineSync()?.toLowerCase();
     }
-  } else if (input == 'n') {
-    print('게임 결과가 저장되지 않았습니다.');
-  } else {
-    print('y 또는 n을 입력해주세요.');
   }
 }
 
@@ -220,17 +225,20 @@ void startGame() {
       monsters.removeAt(0);
 
       if (monsters.isNotEmpty) {
-        print('\n다른 몬스터와 싸우시겠습니까? (y/n):');
-        String? input = stdin.readLineSync()?.toLowerCase();
-        if (input == 'y') {
-          print('\n새로운 몬스터가 나타났습니다!');
-          currentMonster = monsters[0];
-          currentMonster.showStatus();
-        } else if (input == 'n') {
-          saveGameResult(character!.name, character!.health, true);
-          break;
-        } else {
-          print('y 또는 n을 입력해주세요.');
+        while (true) {
+          print('\n다른 몬스터와 싸우시겠습니까? (y/n):');
+          String? input = stdin.readLineSync()?.toLowerCase();
+          if (input == 'y') {
+            print('\n새로운 몬스터가 나타났습니다!');
+            currentMonster = monsters[0];
+            currentMonster.showStatus();
+            break;
+          } else if (input == 'n') {
+            saveGameResult(character!.name, character!.health, true);
+            break;
+          } else {
+            print('y 또는 n을 입력해주세요.');
+          }
         }
       } else {
         print('\n모든 몬스터를 물리쳤습니다! 게임 클리어!');
