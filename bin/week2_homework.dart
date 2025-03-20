@@ -15,6 +15,7 @@ class Monster {
   int maxAttack;
   int defense = 0;
   late int attack;
+  int MonsterturnCount = 0; // 몬스터의 턴 수를 추적하는 멤버 변수 추가
 
   // 생성자 추가
   Monster(this.name, this.health, this.maxAttack) {
@@ -170,7 +171,11 @@ void battle(Character player, Monster currentMonster) {
 
   // 3번째 턴마다 몬스터의 방어력 증가
   turnCount++;
-  if (turnCount % 3 == 0) {
+  currentMonster.MonsterturnCount++; // 현재 몬스터의 턴 수 증가
+  print(
+    '현재 턴 수: $turnCount\n몬스터 현재 턴 수 : ${currentMonster.MonsterturnCount}',
+  ); // 디버깅 메시지 추가
+  if (currentMonster.MonsterturnCount % 3 == 0) {
     currentMonster.defense += 2;
     print(
       '${currentMonster.name}의 방어력이 증가했습니다! 현재 방어력: ${currentMonster.defense}',
