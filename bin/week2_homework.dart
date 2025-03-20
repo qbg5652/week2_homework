@@ -5,21 +5,30 @@ import 'dart:math';
 Character? character;
 List<Monster> monsters = [];
 
+// 아이템 사용과 턴카운트를 위해 전역 변수 선언
+bool usedItem = false;
+int turnCount = 0;
+
 class Monster {
   String name;
   int health;
   int maxAttack;
+  int defense = 0;
   late int attack;
 
   // 생성자 추가
   Monster(this.name, this.health, this.maxAttack) {
     // 공격력을 1부터 maxAttack 사이의 랜덤한 값으로 설정
-    final random = Random();
-    this.attack = random.nextInt(maxAttack) + 1;
+    final randomAttack = Random();
+    // 0부터 maxAttack의 -1까지 공격력임. 그렇기에 +1을 해줘야 maxAttack까지 공격력이 나옴.
+    // nextInt()는 0이상, bound 미만의 난수를 생성함. 즉, 0부터 maxAttack - 1까지의 난수를 생성함.
+    this.attack = randomAttack.nextInt(maxAttack) + 1;
   }
 
   void attackCharacter(Character character) {
     int damage = attack;
+    // clamp() 함수는 주어진 값을 범위 내에 제한함. 최소가 0, 최대가 double.infinity.(무한대. 최대체력을 의미함.)
+    // double.infinity로 최대값을 넣고, 이는 double형 값이므로 toInt()로 int형으로 변환해줌.
     character.health =
         (character.health - damage).clamp(0, double.infinity).toInt();
     print('${this.name}이(가) ${character.name}에게 ${damage}의 데미지를 입혔습니다.');
@@ -64,8 +73,9 @@ void loadCharacterStats(String characterName) {
     final file = File('file/characters.txt');
     final contents = file.readAsStringSync();
     final stats = contents.split(',');
-    if (stats.length != 3) throw FormatException('Invalid character data');
+    if (stats.length != 3) throw FormatException('파일 형식을 확인해주세요.');
 
+    // 캐릭터 스탯불러오기. int.parse()로 문자를 int형으로 변환. stats[0]은 체력, stats[1]은 공격력, stats[2]는 방어력.
     int health = int.parse(stats[0]);
     int attack = int.parse(stats[1]);
     int defense = int.parse(stats[2]);
@@ -75,7 +85,6 @@ void loadCharacterStats(String characterName) {
     character?.showStatus();
   } catch (e) {
     print('캐릭터 데이터를 불러오는 데 실패했습니다: $e');
-    exit(1);
   }
 }
 
@@ -87,10 +96,11 @@ void loadMonsterStats() {
     final lines = contents.split('\n');
 
     for (var line in lines) {
+      //trim()은 문자열의 양쪽 공백을 제거함. continue는 빈 문자열일 경우 건너뛰기.
       if (line.trim().isEmpty) continue;
 
       final stats = line.split(',');
-      if (stats.length != 3) throw FormatException('Invalid monster data');
+      if (stats.length != 3) throw FormatException('파일 형식을 확인해주세요.');
 
       String name = stats[0];
       int health = int.parse(stats[1]);
@@ -100,8 +110,8 @@ void loadMonsterStats() {
     }
 
     // 몬스터 리스트를 랜덤하게 섞기
-    final random = Random();
-    monsters.shuffle(random);
+    final getRandomMonster = Random();
+    monsters.shuffle(getRandomMonster);
 
     // print('\n=== 몬스터 목록 ===');
     // for (var monster in monsters) {
@@ -109,19 +119,42 @@ void loadMonsterStats() {
     // }
   } catch (e) {
     print('몬스터 데이터를 불러오는 데 실패했습니다: $e');
-    exit(1);
   }
 }
 
-void playTurn(Character player, Monster currentMonster) {
-  print('\n${player.name}의 턴');
-  print('행동을 선택하세요 (1: 공격, 2: 방어): ');
+void battle(Character player, Monster currentMonster) {
+  while (true) {
+    print('\n${player.name}의 턴');
+    print('행동을 선택하세요 (1: 공격, 2: 방어, 3: 아이템 사용): ');
 
-  String? input = stdin.readLineSync();
-  if (input == '1') {
-    player.attackMonster(currentMonster);
-  } else if (input == '2') {
-    player.defend(currentMonster.attack);
+    String? input = stdin.readLineSync();
+
+    if (input == '1') {
+      player.attackMonster(currentMonster);
+      break;
+    } else if (input == '2') {
+      player.defend(currentMonster.attack);
+      break;
+    } else if (input == '3' && !usedItem) {
+      print('아이템을 사용하여 공격력이 2배가 됩니다!');
+      int originalAttack = player.attack;
+      player.attack *= 2;
+      player.attackMonster(currentMonster);
+      player.attack = originalAttack;
+      usedItem = true;
+      break;
+    } else if (input == '3' && usedItem) {
+      print('아이템을 이미 사용하였습니다. 다시 선택하세요.');
+    } else {
+      print('1, 2, 3 중 하나를 선택해주세요.');
+    }
+  }
+
+  // 30% 확률로 체력 증가
+  final randomHealthPlus = Random();
+  if (randomHealthPlus.nextDouble() < 0.3) {
+    player.health += 10;
+    print('보너스 체력을 얻었습니다! 현재 체력: ${player.health}');
   }
 
   player.showStatus();
@@ -134,12 +167,22 @@ void playTurn(Character player, Monster currentMonster) {
     player.showStatus();
     currentMonster.showStatus();
   }
+
+  // 3번째 턴마다 몬스터의 방어력 증가
+  turnCount++;
+  if (turnCount % 3 == 0) {
+    currentMonster.defense += 2;
+    print(
+      '${currentMonster.name}의 방어력이 증가했습니다! 현재 방어력: ${currentMonster.defense}',
+    );
+  }
 }
 
 void saveGameResult(String characterName, int remainingHealth, bool isVictory) {
   String message =
-      isVictory ? '\n결과를 저장하시겠습니까? (y/n):' : '\n패배했습니다. 결과를 저장하시겠습니까? (y/n):';
+      isVictory ? '결과를 저장하시겠습니까? (y/n):' : '\n패배했습니다. 결과를 저장하시겠습니까? (y/n):';
   print(message);
+  //입력된 문자가 소문자로 저장됨.
   String? input = stdin.readLineSync()?.toLowerCase();
 
   if (input == 'y') {
@@ -158,7 +201,7 @@ void saveGameResult(String characterName, int remainingHealth, bool isVictory) {
   }
 }
 
-void startBattle() {
+void startGame() {
   if (character == null || monsters.isEmpty) return;
 
   print('\n새로운 몬스터가 나타났습니다!');
@@ -166,7 +209,7 @@ void startBattle() {
   currentMonster.showStatus();
 
   while (character!.health > 0 && currentMonster.health > 0) {
-    playTurn(character!, currentMonster);
+    battle(character!, currentMonster);
 
     if (currentMonster.health <= 0) {
       print('\n${currentMonster.name}을(를) 물리쳤습니다!');
@@ -212,5 +255,5 @@ void main(List<String> arguments) {
   print('게임을 시작합니다!');
   loadCharacterStats(characterName);
   loadMonsterStats();
-  startBattle();
+  startGame();
 }
