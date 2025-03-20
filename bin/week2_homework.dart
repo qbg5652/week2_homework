@@ -198,6 +198,10 @@ void saveGameResult(String characterName, int remainingHealth, bool isVictory) {
     } catch (e) {
       print('결과 저장에 실패했습니다: $e');
     }
+  } else if (input == 'n') {
+    print('게임 결과가 저장되지 않았습니다.');
+  } else {
+    print('y 또는 n을 입력해주세요.');
   }
 }
 
@@ -222,9 +226,11 @@ void startGame() {
           print('\n새로운 몬스터가 나타났습니다!');
           currentMonster = monsters[0];
           currentMonster.showStatus();
-        } else {
+        } else if (input == 'n') {
           saveGameResult(character!.name, character!.health, true);
           break;
+        } else {
+          print('y 또는 n을 입력해주세요.');
         }
       } else {
         print('\n모든 몬스터를 물리쳤습니다! 게임 클리어!');
@@ -246,7 +252,7 @@ void main(List<String> arguments) {
   String characterName = '';
   while (true) {
     characterName = stdin.readLineSync() ?? '';
-    if (RegExp(r'^[a-zA-Z가-힣]+$').hasMatch(characterName)) {
+    if (RegExp(r'^[a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]+$').hasMatch(characterName)) {
       break;
     } else {
       print('한글, 영문대소문자만 입력해주세요:');
